@@ -5,15 +5,12 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.rabix.bindings.model.Job;
-import org.rabix.engine.processor.EventProcessor;
 import org.rabix.engine.repository.JobRepository.JobEntity;
 
 public interface JobService {
 
   void update(Job job) throws JobServiceException;
   
-  Set<Job> getReady(EventProcessor eventProcessor, UUID rootId) throws JobServiceException;
-
   Job start(Job job, Map<String, Object> config) throws JobServiceException;
   
   void stop(UUID id) throws JobServiceException;

@@ -6,7 +6,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -52,9 +51,6 @@ public class JobServiceImpl implements JobService {
   private final static Logger logger = LoggerFactory.getLogger(JobServiceImpl.class);
   
   private final JobRecordService jobRecordService;
-  private final LinkRecordService linkRecordService;
-  private final VariableRecordService variableRecordService;
-  private final ContextRecordService contextRecordService;
 
   private final JobRepository jobRepository;
   private final DAGNodeDB dagNodeDB;
@@ -72,19 +68,15 @@ public class JobServiceImpl implements JobService {
 
   private IntermediaryFilesService intermediaryFilesService;
   private static final long FREE_RESOURCES_WAIT_TIME = 3000L;
-
-  private final ExecutorService executorService = Executors.newSingleThreadExecutor();
   
   private Set<UUID> stoppingRootIds = new HashSet<>();
   private EngineStatusCallback engineStatusCallback;
   private boolean setResources;
-  
+
   @Inject
-  public JobServiceImpl(EventProcessor eventProcessor, JobRecordService jobRecordService,
-      VariableRecordService variableRecordService, LinkRecordService linkRecordService,
-      ContextRecordService contextRecordService, SchedulerService scheduler, DAGNodeDB dagNodeDB, AppDB appDB,
-      JobRepository jobRepository, TransactionHelper transactionHelper, EngineStatusCallback statusCallback,
-      Configuration configuration, IntermediaryFilesService intermediaryFilesService) {
+  public JobServiceImpl(EventProcessor eventProcessor, JobRecordService jobRecordService, SchedulerService scheduler, DAGNodeDB dagNodeDB, AppDB appDB,
+      JobRepository jobRepository, TransactionHelper transactionHelper, EngineStatusCallback statusCallback, Configuration configuration,
+      IntermediaryFilesService intermediaryFilesService) {
 
     this.dagNodeDB = dagNodeDB;
     this.appDB = appDB;
@@ -92,9 +84,6 @@ public class JobServiceImpl implements JobService {
     this.jobRepository = jobRepository;
     
     this.jobRecordService = jobRecordService;
-    this.linkRecordService = linkRecordService;
-    this.variableRecordService = variableRecordService;
-    this.contextRecordService = contextRecordService;
     this.scheduler = scheduler;
     this.transactionHelper = transactionHelper;
     this.engineStatusCallback = statusCallback;
@@ -256,12 +245,7 @@ public class JobServiceImpl implements JobService {
     Job job = jobRepository.get(id);
     stop(job);
   }
-  
-  @Override
-  public Set<Job> getReady(EventProcessor eventProcessor, UUID rootId) throws JobServiceException {
-    return JobHelper.createReadyJobs(jobRecordService, variableRecordService, linkRecordService, contextRecordService, dagNodeDB, appDB, rootId);
-  }
-  
+ 
   @Override
   public Job get(UUID id) {
     return jobRepository.get(id);
@@ -320,44 +304,6 @@ public class JobServiceImpl implements JobService {
   @Override
   public void handleJobFailed(final Job failedJob){
     logger.warn("Job {}, rootId: {} failed: {}", failedJob.getName(), failedJob.getRootId(), failedJob.getMessage());
-    if (isLocalBackend) {
-      synchronized (stoppingRootIds) {
-        if (stoppingRootIds.contains(failedJob.getRootId())) {
-          return;
-        }
-        stoppingRootIds.add(failedJob.getRootId());
-
-        try {
-          stop(failedJob.getRootId());
-        } catch (JobServiceException e) {
-          logger.error("Failed to stop Root job " + failedJob.getRootId(), e);
-        }
-        executorService.submit(new Runnable() {
-          @Override
-          public void run() {
-            while (true) {
-              try {
-                boolean exit = true;
-                for (Job job : jobRepository.getByRootId(failedJob.getRootId())) {
-                  if (!job.isRoot() && !isFinished(job.getStatus())) {
-                    exit = false;
-                    break;
-                  }
-                }
-                if (exit) {
-                  handleJobRootFailed(failedJob);
-                  break;
-                }
-                Thread.sleep(TimeUnit.SECONDS.toMillis(2));
-              } catch (Exception e) {
-                logger.error("Failed to stop root Job " + failedJob.getRootId(), e);
-                break;
-              }
-            }
-          }
-        });
-      }
-    }
     if (deleteIntermediaryFiles) {
       intermediaryFilesService.handleJobFailed(failedJob, jobRepository.get(failedJob.getRootId()), keepInputFiles);
     }
@@ -367,17 +313,7 @@ public class JobServiceImpl implements JobService {
       logger.error("Engine status callback failed", e);
     }
   }
-
-  private boolean isFinished(JobStatus jobStatus) {
-    switch (jobStatus) {
-      case COMPLETED:
-      case FAILED:
-      case ABORTED:
-        return true;
-      default:
-        return false;
-    }
-  }
+  
   @Override
   public void handleJobContainerReady(Job containerJob) {
     logger.info("Container job {} rootId: {} id ready.", containerJob.getName(), containerJob.getRootId());
@@ -406,7 +342,6 @@ public class JobServiceImpl implements JobService {
     }
 
     job = Job.cloneWithStatus(job, JobStatus.COMPLETED);
-    job = JobHelper.fillOutputs(job, jobRecordService, variableRecordService);
     jobRepository.update(job);
     try {
       engineStatusCallback.onJobRootCompleted(job);
