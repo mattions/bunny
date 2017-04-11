@@ -20,28 +20,52 @@ public class JobStatusEvent implements Event {
   
   @JsonProperty("result")
   private final Map<String, Object> result;
+  @JsonProperty("message")
+  private final String message;
   
   @JsonProperty("eventGroupId")
   private final UUID eventGroupId;
   @JsonProperty("producedByNode")
   private final String producedByNode;
+
+  public JobStatusEvent(String jobId, UUID contextId, JobState state, UUID eventGroupId, String producedByNode) {
+    this.jobId = jobId;
+    this.contextId = contextId;
+    this.state = state;
+    this.result = null;
+    this.message = null;
+    this.eventGroupId = eventGroupId;
+    this.producedByNode = producedByNode;
+  }
   
   public JobStatusEvent(String jobId, UUID contextId, JobState state, Map<String, Object> result, UUID eventGroupId, String producedByNode) {
     this.jobId = jobId;
     this.contextId = contextId;
     this.state = state;
     this.result = result;
+    this.message = null;
+    this.eventGroupId = eventGroupId;
+    this.producedByNode = producedByNode;
+  }
+  
+  public JobStatusEvent(String jobId, UUID contextId, JobState state, String message, UUID eventGroupId, String producedByNode) {
+    this.jobId = jobId;
+    this.contextId = contextId;
+    this.state = state;
+    this.result = null;
+    this.message = message;
     this.eventGroupId = eventGroupId;
     this.producedByNode = producedByNode;
   }
   
   @JsonCreator
   public JobStatusEvent(@JsonProperty("jobId") String jobId, @JsonProperty("state") JobState state,
-      @JsonProperty("contextId") UUID contextId, @JsonProperty("result") Map<String, Object> result,
+      @JsonProperty("contextId") UUID contextId, @JsonProperty("result") Map<String, Object> result, @JsonProperty("message") String message,
       @JsonProperty("eventGroupId") UUID eventGroupId, @JsonProperty("producedByNode") String producedByNode) {
     this.jobId = jobId;
     this.state = state;
     this.contextId = contextId;
+    this.message = message;
     this.result = result;
     this.eventGroupId = eventGroupId;
     this.producedByNode = producedByNode;
@@ -77,6 +101,10 @@ public class JobStatusEvent implements Event {
   @Override
   public EventType getType() {
     return EventType.JOB_STATUS_UPDATE;
+  }
+
+  public String getMessage() {
+    return message;
   }
 
   @Override
