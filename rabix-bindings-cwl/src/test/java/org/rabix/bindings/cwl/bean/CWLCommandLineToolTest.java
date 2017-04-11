@@ -31,7 +31,7 @@ public class CWLCommandLineToolTest {
     List<?> resultList;
     try {
       String encodedApp = URIHelper.createDataURI(BeanSerializer.serializeFull(cwlJob.getApp()));
-      Job job = new Job(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "id", encodedApp, null, null, cwlJob.getInputs(), null, null, null, null);
+      Job job = new Job(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "id", encodedApp, null, null, cwlJob.getInputs(), null, null, null);
       Bindings bindings = new CWLBindings();
       resultList = bindings.buildCommandLineObject(job, null, null).getParts();
       Assert.assertNotNull(resultList);

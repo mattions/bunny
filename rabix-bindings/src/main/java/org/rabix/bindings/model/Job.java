@@ -60,11 +60,8 @@ public class Job implements Serializable {
   @JsonProperty("resources")
   private final Resources resources;
   
-  @JsonProperty("visiblePorts")
-  private Set<String> visiblePorts;
-  
   public Job(String app, Map<String, Object> inputs) {
-    this(null, null, generateId(), null, app, JobStatus.PENDING, null, inputs, null, null, null, null);
+    this(null, null, generateId(), null, app, JobStatus.PENDING, null, inputs, null, null, null);
   }
   
   @JsonCreator
@@ -78,8 +75,7 @@ public class Job implements Serializable {
       @JsonProperty("inputs") Map<String, Object> inputs, 
       @JsonProperty("outputs") Map<String, Object> otputs,
       @JsonProperty("config") Map<String, Object> config,
-      @JsonProperty("resources") Resources resources,
-      @JsonProperty("visiblePorts") Set<String> visiblePorts) {
+      @JsonProperty("resources") Resources resources) {
     this.id = id;
     this.parentId = parentId;
     this.rootId = rootId;
@@ -91,7 +87,6 @@ public class Job implements Serializable {
     this.outputs = otputs;
     this.resources = resources;
     this.config = config;
-    this.visiblePorts = visiblePorts;
   }
   
   public static UUID generateId() {
@@ -99,43 +94,43 @@ public class Job implements Serializable {
   }
   
   public static Job cloneWithId(Job job, UUID id) {
-    return new Job(id, job.parentId, job.rootId, job.name, job.app, job.status, job.message, job.inputs, job.outputs, job.config, job.resources, job.visiblePorts);
+    return new Job(id, job.parentId, job.rootId, job.name, job.app, job.status, job.message, job.inputs, job.outputs, job.config, job.resources);
   }
   
   public static Job cloneWithName(Job job, String name) {
-    return new Job(job.id, job.parentId, job.rootId, name, job.app, job.status, job.message, job.inputs, job.outputs, job.config, job.resources, job.visiblePorts);
+    return new Job(job.id, job.parentId, job.rootId, name, job.app, job.status, job.message, job.inputs, job.outputs, job.config, job.resources);
   }
 
   public static Job cloneWithIds(Job job, UUID id, UUID rootId) {
-    return new Job(id, job.parentId, rootId, job.name, job.app, job.status, job.message, job.inputs, job.outputs, job.config, job.resources, job.visiblePorts);
+    return new Job(id, job.parentId, rootId, job.name, job.app, job.status, job.message, job.inputs, job.outputs, job.config, job.resources);
   }
   
   public static Job cloneWithRootId(Job job, UUID rootId) {
-    return new Job(job.getId(), job.parentId, rootId, job.name, job.app, job.status, job.message, job.inputs, job.outputs, job.config, job.resources, job.visiblePorts);
+    return new Job(job.getId(), job.parentId, rootId, job.name, job.app, job.status, job.message, job.inputs, job.outputs, job.config, job.resources);
   }
   
   public static Job cloneWithConfig(Job job, Map<String, Object> config) {
-    return new Job(job.id, job.parentId, job.rootId, job.name, job.app, job.status, job.message, job.inputs, job.outputs, config, job.resources, job.visiblePorts);
+    return new Job(job.id, job.parentId, job.rootId, job.name, job.app, job.status, job.message, job.inputs, job.outputs, config, job.resources);
   }
   
   public static Job cloneWithStatus(Job job, JobStatus status) {
-    return new Job(job.id, job.parentId, job.rootId, job.name, job.app, status, job.message, job.inputs, job.outputs, job.config, job.resources, job.visiblePorts);
+    return new Job(job.id, job.parentId, job.rootId, job.name, job.app, status, job.message, job.inputs, job.outputs, job.config, job.resources);
   }
   
   public static Job cloneWithMessage(Job job, String message) {
-    return new Job(job.id, job.parentId, job.rootId, job.name, job.app, job.status, message, job.inputs, job.outputs, job.config, job.resources, job.visiblePorts);
+    return new Job(job.id, job.parentId, job.rootId, job.name, job.app, job.status, message, job.inputs, job.outputs, job.config, job.resources);
   }
   
   public static Job cloneWithInputs(Job job, Map<String, Object> inputs) {
-    return new Job(job.id, job.parentId, job.rootId, job.name, job.app, job.status, job.message, inputs, job.outputs, job.config, job.resources, job.visiblePorts);
+    return new Job(job.id, job.parentId, job.rootId, job.name, job.app, job.status, job.message, inputs, job.outputs, job.config, job.resources);
   }
   
   public static Job cloneWithOutputs(Job job, Map<String, Object> outputs) {
-    return new Job(job.id, job.parentId, job.rootId, job.name, job.app, job.status, job.message, job.inputs, outputs, job.config, job.resources, job.visiblePorts);
+    return new Job(job.id, job.parentId, job.rootId, job.name, job.app, job.status, job.message, job.inputs, outputs, job.config, job.resources);
   }
   
   public static Job cloneWithResources(Job job, Resources resources) {
-    return new Job(job.id, job.parentId, job.rootId, job.name, job.app, job.status, job.message, job.inputs, job.outputs, job.config, resources, job.visiblePorts);
+    return new Job(job.id, job.parentId, job.rootId, job.name, job.app, job.status, job.message, job.inputs, job.outputs, job.config, resources);
   }
   
   public static boolean isFinished(Job job) {
@@ -179,11 +174,7 @@ public class Job implements Serializable {
   public Resources getResources() {
     return resources;
   }
-  
-  public Set<String> getVisiblePorts() {
-    return visiblePorts;
-  }
-  
+
   @SuppressWarnings("unchecked")
   public Map<String, Object> getInputs() {
     try {
@@ -225,7 +216,6 @@ public class Job implements Serializable {
     result = prime * result + ((resources == null) ? 0 : resources.hashCode());
     result = prime * result + ((rootId == null) ? 0 : rootId.hashCode());
     result = prime * result + ((status == null) ? 0 : status.hashCode());
-    result = prime * result + ((visiblePorts == null) ? 0 : visiblePorts.hashCode());
     return result;
   }
 
@@ -289,11 +279,6 @@ public class Job implements Serializable {
     } else if (!rootId.equals(other.rootId))
       return false;
     if (status != other.status)
-      return false;
-    if (visiblePorts == null) {
-      if (other.visiblePorts != null)
-        return false;
-    } else if (!visiblePorts.equals(other.visiblePorts))
       return false;
     return true;
   }

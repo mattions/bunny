@@ -131,7 +131,7 @@ public interface JDBIJobRepository extends JobRepository {
       Map<String, Object> outputs = JSONHelper.readMap(outputsJson);
       Map<String, Object> config = JSONHelper.readMap(configJson);
 
-      return new Job(id, parent_id, root_id, name, app, status, message, inputs, outputs, config, res, Collections.emptySet());
+      return new Job(id, parent_id, root_id, name, app, status, message, inputs, outputs, config, res);
     }
   }
   
@@ -158,7 +158,7 @@ public interface JDBIJobRepository extends JobRepository {
       Map<String, Object> outputs = JSONHelper.readMap(outputsJson);
       Map<String, Object> config = JSONHelper.readMap(configJson);
 
-      Job job = new Job(id, parentId, root_id, name, app, status, message, inputs, outputs, config, res, Collections.emptySet());
+      Job job = new Job(id, parentId, root_id, name, app, status, message, inputs, outputs, config, res);
       return new JobEntity(job, groupId, producedByNode, backendId);
     }
   }

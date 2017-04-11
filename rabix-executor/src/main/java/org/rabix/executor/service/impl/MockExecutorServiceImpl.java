@@ -305,7 +305,7 @@ public class MockExecutorServiceImpl implements ExecutorService {
     }
 
     public Job createJob() {
-      return new Job(id, parentId, rootId, name, app, status, message, inputs, outputs, config, resources, visiblePorts);
+      return new Job(id, parentId, rootId, name, app, status, message, inputs, outputs, config, resources);
     }
     
     @Override

@@ -142,8 +142,7 @@ public class JobHelper {
     ContextRecord contextRecord = contextRecordService.find(job.getRootId());
     String encodedApp = URIHelper.createDataURI(appDB.get(node.getAppHash()).serialize());
     
-    Set<String> visiblePorts = findVisiblePorts(job, jobRecordService, linkRecordService, variableRecordService);
-    Job newJob = new Job(job.getExternalId(), job.getParentId(), job.getRootId(), job.getId(), encodedApp, status, null, preprocesedInputs, null, contextRecord.getConfig(), null, visiblePorts);
+    Job newJob = new Job(job.getExternalId(), job.getParentId(), job.getRootId(), job.getId(), encodedApp, status, null, preprocesedInputs, null, contextRecord.getConfig(), null);
     try {
       if (processVariables) {
         Bindings bindings = null;
@@ -188,7 +187,7 @@ public class JobHelper {
     }
     
     logger.debug(inputsLogBuilder.toString());
-    return new Job(job.getExternalId(), job.getParentId(), job.getRootId(), job.getId(), encodedApp, status, null, inputs, null, contextRecord.getConfig(), null, visiblePorts);
+    return new Job(job.getExternalId(), job.getParentId(), job.getRootId(), job.getId(), encodedApp, status, null, inputs, null, contextRecord.getConfig(), null);
   }
   
   public static Job createRootJob(JobRecord job, JobStatus status, JobRecordService jobRecordService, VariableRecordService variableRecordService, LinkRecordService linkRecordService, ContextRecordService contextRecordService, DAGNodeDB dagNodeDB, AppDB appDB, Map<String, Object> outputs) {
@@ -203,32 +202,9 @@ public class JobHelper {
     
     ContextRecord contextRecord = contextRecordService.find(job.getRootId());
     String encodedApp = URIHelper.createDataURI(appDB.get(node.getAppHash()).serialize());
-    return new Job(job.getExternalId(), job.getParentId(), job.getRootId(), job.getId(), encodedApp, status, null, inputs, outputs, contextRecord.getConfig(), null, null);
+    return new Job(job.getExternalId(), job.getParentId(), job.getRootId(), job.getId(), encodedApp, status, message, inputs, outputs, contextRecord.getConfig(), null);
   }
-  
-  private static Set<String> findVisiblePorts(JobRecord jobRecord, JobRecordService jobRecordService, LinkRecordService linkRecordService, VariableRecordService variableRecordService) {
-    Set<String> visiblePorts = new HashSet<>();
-    for (PortCounter outputPortCounter : jobRecord.getOutputCounters()) {
-      boolean isVisible = isRoot(outputPortCounter.getPort(), jobRecord.getId(), jobRecord.getRootId(), linkRecordService);
-      if (isVisible) {
-        visiblePorts.add(outputPortCounter.getPort());
-      }
-    }
-    return visiblePorts;
-  }
-  
-  private static boolean isRoot(String portId, String jobId, UUID rootId, LinkRecordService linkRecordService) {
-    List<LinkRecord> links = linkRecordService.findBySourceAndDestinationType(jobId, portId, LinkPortType.OUTPUT, rootId);
-
-    for (LinkRecord link : links) {
-      if (link.getDestinationJobId().equals(InternalSchemaHelper.ROOT_NAME)) {
-        return true;
-      } else {
-        return isRoot(link.getDestinationJobPort(), link.getDestinationJobId(), rootId, linkRecordService);
-      }
-    }
-    return false;
-  }
+ 
   
   public static Job fillOutputs(Job job, JobRecordService jobRecordService, VariableRecordService variableRecordService) {
     JobRecord jobRecord = jobRecordService.findRoot(job.getRootId());

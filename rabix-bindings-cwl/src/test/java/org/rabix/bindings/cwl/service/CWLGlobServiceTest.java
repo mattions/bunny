@@ -53,7 +53,7 @@ public class CWLGlobServiceTest {
     String encodedApp = URIHelper.createDataURI(BeanSerializer.serializeFull(cwlJob.getApp()));
     
     Map<String, Object> inputs = (Map<String, Object>) CWLValueTranslator.translateToCommon(cwlJob.getInputs());
-    Job job = new Job(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "id", encodedApp, null, null, inputs, null, null, null, null);
+    Job job = new Job(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "id", encodedApp, null, null, inputs, null, null, null);
 
     Bindings bindings = new CWLBindings();
     job = bindings.postprocess(job, workingDir, null, null);

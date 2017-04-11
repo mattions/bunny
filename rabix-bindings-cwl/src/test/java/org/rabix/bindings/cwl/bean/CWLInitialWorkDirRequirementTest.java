@@ -34,7 +34,7 @@ public class CWLInitialWorkDirRequirementTest {
     try {
       String encodedApp = URIHelper.createDataURI(BeanSerializer.serializeFull(cwlJob.getApp()));
       Map<String, Object> inputs = (Map<String, Object>) CWLValueTranslator.translateToCommon(cwlJob.getInputs());
-      Job job = new Job(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "id", encodedApp, null, null, inputs, null, null, null, null);
+      Job job = new Job(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "id", encodedApp, null, null, inputs, null, null, null);
       job = Job.cloneWithResources(job, CWLRuntimeHelper.convertToResources(runtime));
       Bindings bindings = new CWLBindings();
       
