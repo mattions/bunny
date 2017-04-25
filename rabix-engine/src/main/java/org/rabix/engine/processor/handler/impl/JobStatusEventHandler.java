@@ -1,5 +1,6 @@
 package org.rabix.engine.processor.handler.impl;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -264,10 +265,9 @@ public class JobStatusEventHandler implements EventHandler<JobStatusEvent> {
       job.setState(JobState.RUNNING);
 
       DAGContainer containerNode = (DAGContainer) node;
-      rollOutContainer(job, containerNode, rootId);
+      List<LinkRecord> containerLinks = rollOutContainer(job, containerNode, rootId);
       handleTransform(job, containerNode);
       
-      List<LinkRecord> containerLinks = linkRecordService.findBySourceAndSourceType(job.getId(), LinkPortType.INPUT, rootId);
       if (containerLinks.isEmpty()) {
         Set<String> immediateReadyNodeIds = findImmediateReadyNodes(containerNode);
         for (String readyNodeId : immediateReadyNodeIds) {
@@ -362,8 +362,10 @@ public class JobStatusEventHandler implements EventHandler<JobStatusEvent> {
   
   /**
    * Unwraps {@link DAGContainer}
+   * @return 
    */
-  private void rollOutContainer(JobRecord job, DAGContainer containerNode, UUID contextId) {
+  private List<LinkRecord> rollOutContainer(JobRecord job, DAGContainer containerNode, UUID contextId) {
+    List<LinkRecord> inputs = new ArrayList<>();
     for (DAGNode node : containerNode.getChildren()) {
       String newJobId = InternalSchemaHelper.concatenateIds(job.getId(), InternalSchemaHelper.getLastPart(node.getId()));
       
@@ -415,9 +417,13 @@ public class JobStatusEventHandler implements EventHandler<JobStatusEvent> {
       LinkRecord childLink = new LinkRecord(contextId, sourceNodeId, link.getSource().getId(), LinkPortType.valueOf(link.getSource().getType().toString()), destinationNodeId, link.getDestination().getId(), LinkPortType.valueOf(link.getDestination().getType().toString()), link.getPosition());
       linkRecordService.create(childLink);
 
+      if(link.getSource().getDagNodeId().equals(job.getId()) && link.getSource().getType().equals(DAGLinkPort.LinkPortType.INPUT)){
+        inputs.add(childLink);
+      }
       handleLinkPort(jobRecordService.find(sourceNodeId, contextId), link.getSource(), true);
       handleLinkPort(jobRecordService.find(destinationNodeId, contextId), link.getDestination(), false);
     }
+    return inputs;
   }
   
   /**
