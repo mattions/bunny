@@ -77,7 +77,11 @@ public class OutputEventHandler implements EventHandler<OutputUpdateEvent> {
     variableService.addValue(sourceVariable, event.getValue(), event.getPosition(), sourceJob.isScatterWrapper() || event.isFromScatter());
     variableService.update(sourceVariable); // TODO wha?
     jobRecordService.update(sourceJob);
-    
+
+    if(sourceJob.isRoot() && (!event.isFromScatter() || (event.getNumberOfScattered()==sourceVariable.getNumberOfTimesUpdated()))){
+        jobService.handleJobRootPartiallyCompleted(createRootJob(sourceJob, JobHelper.transformStatus(sourceJob.getState())), event.isFromScatter() ? InternalSchemaHelper.getJobIdFromScatteredId(event.getProducedByNode()) : event.getProducedByNode());
+    }
+
     if (sourceJob.isCompleted()) {
       if(sourceJob.getOutputCounter(sourceVariable.getPortId()) != null) {
         if ((sourceJob.isContainer() || sourceJob.isScatterWrapper()) &&
@@ -90,9 +94,6 @@ public class OutputEventHandler implements EventHandler<OutputUpdateEvent> {
 
         if (sourceJob.isRoot()) {
           Job rootJob = createRootJob(sourceJob, JobHelper.transformStatus(sourceJob.getState()));
-          if (!event.isFromScatter() || (event.getNumberOfScattered() == sourceVariable.getNumberOfTimesUpdated())) {
-            jobService.handleJobRootPartiallyCompleted(rootJob, event.isFromScatter() ? InternalSchemaHelper.getJobIdFromScatteredId(event.getProducedByNode()) : event.getProducedByNode());
-          }
           if (sourceJob.isContainer()) {
             eventProcessor.send(
                 new JobStatusEvent(sourceJob.getId(), event.getContextId(), JobState.COMPLETED, rootJob.getOutputs(), event.getEventGroupId(), event.getProducedByNode()));
@@ -109,9 +110,6 @@ public class OutputEventHandler implements EventHandler<OutputUpdateEvent> {
       }
     }
 
-    if(sourceJob.isRoot() && (!event.isFromScatter() || (event.getNumberOfScattered()==sourceVariable.getNumberOfTimesUpdated()))){
-        jobService.handleJobRootPartiallyCompleted(createRootJob(sourceJob, JobHelper.transformStatus(sourceJob.getState())), event.isFromScatter() ? InternalSchemaHelper.getJobIdFromScatteredId(event.getProducedByNode()) : event.getProducedByNode());
-    }
     
     Object value = null;
     
