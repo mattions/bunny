@@ -104,10 +104,13 @@ public class OutputEventHandler implements EventHandler<OutputUpdateEvent> {
           return;
         }
         else {
-          try {
-            Job completedJob = JobHelper.createCompletedJob(sourceJob, JobStatus.COMPLETED, jobRecordService, variableService, linkService, contextService, dagNodeDB, appDB);
-            jobService.handleJobCompleted(completedJob);
-          } catch (BindingException e) {
+          if (!sourceJob.isScattered()) {
+            try {
+              Job completedJob = JobHelper.createCompletedJob(sourceJob, JobStatus.COMPLETED, jobRecordService, variableService, linkService, contextService,
+                  dagNodeDB, appDB);
+              jobService.handleJobCompleted(completedJob);
+            } catch (BindingException e) {
+            }
           }
         }
       }
