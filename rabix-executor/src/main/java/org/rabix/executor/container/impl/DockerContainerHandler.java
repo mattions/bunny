@@ -217,6 +217,7 @@ public class DockerContainerHandler implements ContainerHandler {
         commandLine = normalizeCommandLine(commandLine.replace("/bin/sh -c", ""));
         builder.workingDir(workingDir.getAbsolutePath()).volumes(volumes).cmd("/bin/sh", "-c", commandLine);
       } else {
+        commandLine = normalizeCommandLine(commandLine);
         builder.workingDir(workingDir.getAbsolutePath()).volumes(volumes).cmd("/bin/sh", "-c", commandLine);
       }
 

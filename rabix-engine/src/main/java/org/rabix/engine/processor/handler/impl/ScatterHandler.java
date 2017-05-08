@@ -80,14 +80,16 @@ public class ScatterHandler {
         throw new EventHandlerException(e);
       }
     }
-
-    if (isLookAhead) {
+    if(value instanceof List<?> && ((List<?>)value).isEmpty()){
+      scatterStrategy.setEmptyListDetected();
+    }
+    if (isLookAhead && !scatterStrategy.isEmptyListDetected()) {
       int numberOfScattered = getNumberOfScattered(job, numberOfScatteredFromEvent);
       createScatteredJobs(job, event, portId, value, node, numberOfScattered, position);
       return;
     }
 
-    if (value == null) {
+    if (value == null &&  !scatterStrategy.isEmptyListDetected()) {
       createScatteredJobs(job, event, portId, value, node, 1, position);
       return;
     }
@@ -130,7 +132,7 @@ public class ScatterHandler {
         outputs.put(outputVariableRecord.getPortId(), output);
       }
       jobRecordService.update(job);
-      eventProcessor.send(new JobStatusEvent(job.getId(), job.getRootId(), JobState.COMPLETED,  outputs, event.getEventGroupId(), event.getProducedByNode()));
+      eventProcessor.send(new JobStatusEvent(job.getId(), job.getRootId(), JobState.COMPLETED,  outputs, event.getEventGroupId(), job.getId()));
       return;
     }
   }
