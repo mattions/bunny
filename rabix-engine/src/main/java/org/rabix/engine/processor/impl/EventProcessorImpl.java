@@ -161,16 +161,16 @@ public class EventProcessorImpl implements EventProcessor {
   
   private List<VariableRecord> getVariables(UUID rootId){
     List<VariableRecord> vars = variableService.find(InternalSchemaHelper.ROOT_NAME, LinkPortType.OUTPUT, rootId);
-    vars = vars.stream().filter(p->p.getNumberOfTimesUpdated()>=p.getNumberOfGlobals())
+    vars = vars.stream().filter(p->p.getNumberOfTimesUpdated()>0 && p.getNumberOfTimesUpdated()>=p.getNumberOfGlobals())
     .collect(Collectors.toList());
     return vars;
   }
   
   private Map<String, Object> getVariableMap(UUID rootId){
-    List<VariableRecord> vars = variableService.find(InternalSchemaHelper.ROOT_NAME, LinkPortType.OUTPUT, rootId);
+    List<VariableRecord> vars = getVariables(rootId);
     Map<String,Object> outs = new HashMap<>();
 
-	vars.stream().filter(p -> p.getNumberOfTimesUpdated() >= p.getNumberOfGlobals()).forEach(p -> {
+	vars.stream().forEach(p -> {
 		outs.put(p.getPortId(), p.getValue());
 	});
     return outs;
