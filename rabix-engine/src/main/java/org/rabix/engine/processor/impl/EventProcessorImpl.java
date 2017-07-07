@@ -1,5 +1,8 @@
 package org.rabix.engine.processor.impl;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
@@ -8,8 +11,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import org.rabix.bindings.model.Job;
+import org.rabix.bindings.model.dag.DAGLinkPort.LinkPortType;
+import org.rabix.common.helper.InternalSchemaHelper;
 import org.rabix.engine.event.Event;
 import org.rabix.engine.event.Event.EventStatus;
 import org.rabix.engine.event.Event.EventType;
@@ -17,6 +23,7 @@ import org.rabix.engine.event.Event.PersistentEventType;
 import org.rabix.engine.event.impl.ContextStatusEvent;
 import org.rabix.engine.model.ContextRecord;
 import org.rabix.engine.model.ContextRecord.ContextStatus;
+import org.rabix.engine.model.VariableRecord;
 import org.rabix.engine.processor.EventProcessor;
 import org.rabix.engine.processor.handler.EventHandlerException;
 import org.rabix.engine.processor.handler.HandlerFactory;
@@ -27,6 +34,9 @@ import org.rabix.engine.repository.TransactionHelper.TransactionException;
 import org.rabix.engine.service.CacheService;
 import org.rabix.engine.service.ContextRecordService;
 import org.rabix.engine.service.JobService;
+import org.rabix.engine.service.VariableRecordService;
+import org.rabix.engine.status.EngineStatusCallback;
+import org.rabix.engine.status.EngineStatusCallbackException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,11 +69,14 @@ public class EventProcessorImpl implements EventProcessor {
   private final JobRepository jobRepository;
   private final EventRepository eventRepository;
   private final JobService jobService;
+  private final VariableRecordService variableService;
+
+  private EngineStatusCallback engineStatusCallback;
   
   @Inject
   public EventProcessorImpl(HandlerFactory handlerFactory, ContextRecordService contextRecordService,
       TransactionHelper transactionHelper, CacheService cacheService, EventRepository eventRepository,
-      JobRepository jobRepository, JobService jobService) {
+      JobRepository jobRepository, JobService jobService, VariableRecordService variableService, EngineStatusCallback engineStatusCallback) {
     this.handlerFactory = handlerFactory;
     this.contextRecordService = contextRecordService;
     this.transactionHelper = transactionHelper;
@@ -71,6 +84,8 @@ public class EventProcessorImpl implements EventProcessor {
     this.eventRepository = eventRepository;
     this.jobRepository = jobRepository;
     this.jobService = jobService;
+    this.variableService = variableService;
+    this.engineStatusCallback = engineStatusCallback;
   }
 
   public void start() {
@@ -90,6 +105,11 @@ public class EventProcessorImpl implements EventProcessor {
             transactionHelper.doInTransaction(new TransactionHelper.TransactionCallback<Void>() {
               @Override
               public Void call() throws TransactionException {
+                
+            	List<VariableRecord> variables = null;
+            	if(eventReference.get().getPersistentType().equals(PersistentEventType.JOB_STATUS_UPDATE_COMPLETED)){
+            		variables = getVariables(eventReference.get().getContextId());
+            	}
                 if (!handle(eventReference.get())) {
                   eventRepository.delete(eventReference.get().getEventGroupId());
                   return null;
@@ -101,6 +121,18 @@ public class EventProcessorImpl implements EventProcessor {
                   jobService.handleJobsReady(readyJobs, eventReference.get().getContextId(), eventReference.get().getProducedByNode());  
                 }
                 eventRepository.delete(eventReference.get().getEventGroupId());
+				if (variables != null) {
+					Map<String, Object> fresh = getVariableMap(eventReference.get().getContextId());
+					fresh.keySet().removeAll(
+							variables.stream().map(p -> p.getPortId()).collect(Collectors.toSet()));
+					try {
+						engineStatusCallback.onJobRootPartiallyCompleted(
+								eventReference.get().getContextId(), fresh,
+								eventReference.get().getProducedByNode());
+					} catch (EngineStatusCallbackException e) {
+						e.printStackTrace();
+					}
+				}
                 return null;
               }
             });
@@ -127,6 +159,23 @@ public class EventProcessorImpl implements EventProcessor {
     });
   }
   
+  private List<VariableRecord> getVariables(UUID rootId){
+    List<VariableRecord> vars = variableService.find(InternalSchemaHelper.ROOT_NAME, LinkPortType.OUTPUT, rootId);
+    vars = vars.stream().filter(p->p.getNumberOfTimesUpdated()>=p.getNumberOfGlobals())
+    .collect(Collectors.toList());
+    return vars;
+  }
+  
+  private Map<String, Object> getVariableMap(UUID rootId){
+    List<VariableRecord> vars = variableService.find(InternalSchemaHelper.ROOT_NAME, LinkPortType.OUTPUT, rootId);
+    Map<String,Object> outs = new HashMap<>();
+
+	vars.stream().filter(p -> p.getNumberOfTimesUpdated() >= p.getNumberOfGlobals()).forEach(p -> {
+		outs.put(p.getPortId(), p.getValue());
+	});
+    return outs;
+  }
+
   private boolean checkForReadyJobs(Event event) {
     switch (event.getType()) {
     case INIT:
