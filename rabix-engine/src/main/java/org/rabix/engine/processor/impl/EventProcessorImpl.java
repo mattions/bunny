@@ -13,7 +13,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.rabix.bindings.model.Job;
 import org.rabix.bindings.model.dag.DAGLinkPort.LinkPortType;
 import org.rabix.common.helper.InternalSchemaHelper;
@@ -108,7 +107,9 @@ public class EventProcessorImpl implements EventProcessor {
               public Void call() throws TransactionException {
                 
             	List<VariableRecord> variables = null;
-            	if(eventReference.get().getPersistentType().equals(PersistentEventType.JOB_STATUS_UPDATE_COMPLETED)){
+            	PersistentEventType type = eventReference.get().getPersistentType();
+            	boolean checkTerminals = type!=null && type.equals(PersistentEventType.JOB_STATUS_UPDATE_COMPLETED);
+                if(checkTerminals){
             		variables = getVariables(eventReference.get().getContextId());
             	}
                 if (!handle(eventReference.get())) {
@@ -122,16 +123,16 @@ public class EventProcessorImpl implements EventProcessor {
                   jobService.handleJobsReady(readyJobs, eventReference.get().getContextId(), eventReference.get().getProducedByNode());  
                 }
                 eventRepository.delete(eventReference.get().getEventGroupId());
-				if (!CollectionUtils.isEmpty(variables)) {
+                if(checkTerminals){
 					Map<String, Object> fresh = getVariableMap(eventReference.get().getContextId());
-					fresh.keySet().removeAll(
-							variables.stream().map(p -> p.getPortId()).collect(Collectors.toSet()));
+	                if (variables != null && !variables.isEmpty()) {
+    					fresh.keySet().removeAll(
+    							variables.stream().map(p -> p.getPortId()).collect(Collectors.toSet()));
+	                }
 					try {
-						engineStatusCallback.onJobRootPartiallyCompleted(
-								eventReference.get().getContextId(), fresh,
-								eventReference.get().getProducedByNode());
+					  engineStatusCallback.onJobRootPartiallyCompleted(eventReference.get().getContextId(), fresh,eventReference.get().getProducedByNode());
 					} catch (EngineStatusCallbackException e) {
-						e.printStackTrace();
+                      logger.error("Failed to send Terminals", e);
 					}
 				}
                 return null;
