@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.rabix.bindings.model.Job;
 import org.rabix.bindings.model.dag.DAGLinkPort.LinkPortType;
 import org.rabix.common.helper.InternalSchemaHelper;
@@ -121,7 +122,7 @@ public class EventProcessorImpl implements EventProcessor {
                   jobService.handleJobsReady(readyJobs, eventReference.get().getContextId(), eventReference.get().getProducedByNode());  
                 }
                 eventRepository.delete(eventReference.get().getEventGroupId());
-				if (variables != null) {
+				if (!CollectionUtils.isEmpty(variables)) {
 					Map<String, Object> fresh = getVariableMap(eventReference.get().getContextId());
 					fresh.keySet().removeAll(
 							variables.stream().map(p -> p.getPortId()).collect(Collectors.toSet()));
