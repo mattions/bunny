@@ -18,7 +18,6 @@ import org.rabix.engine.event.impl.InputUpdateEvent;
 import org.rabix.engine.event.impl.JobStatusEvent;
 import org.rabix.engine.event.impl.OutputUpdateEvent;
 import org.rabix.engine.model.JobRecord;
-import org.rabix.engine.model.JobStatsRecord;
 import org.rabix.engine.model.LinkRecord;
 import org.rabix.engine.model.VariableRecord;
 import org.rabix.engine.model.scatter.ScatterStrategy;
@@ -92,6 +91,9 @@ public class OutputEventHandler implements EventHandler<OutputUpdateEvent> {
           try {
             Job completedJob = JobHelper.createCompletedJob(sourceJob, JobStatus.COMPLETED, jobRecordService, variableService, linkService, contextService, dagNodeDB, appDB);
             jobService.handleJobCompleted(completedJob);
+            if(!sourceJob.isScattered()){
+                eventProcessor.send(new JobStatusEvent(sourceJob.getId(), event.getContextId(), JobState.COMPLETED, completedJob.getOutputs(), event.getEventGroupId(), event.getProducedByNode()));
+              }
           } catch (BindingException e) {
           }
         }
