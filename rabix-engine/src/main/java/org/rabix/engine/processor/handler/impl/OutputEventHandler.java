@@ -107,6 +107,9 @@ public class OutputEventHandler implements EventHandler<OutputUpdateEvent> {
           try {
             Job completedJob = JobHelper.createCompletedJob(sourceJob, JobStatus.COMPLETED, jobRecordService, variableService, linkService, contextService, dagNodeService, appService);
             jobService.handleJobCompleted(completedJob);
+            if(!sourceJob.isScattered()){
+              eventProcessor.send(new JobStatusEvent(sourceJob.getId(), event.getContextId(), JobRecord.JobState.COMPLETED, completedJob.getOutputs(), event.getEventGroupId(), event.getProducedByNode()));
+            }
           } catch (BindingException e) {
           }
         }

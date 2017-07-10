@@ -182,11 +182,13 @@ public class JobStatusEventHandler implements EventHandler<JobStatusEvent> {
           throw new EventHandlerException("Failed to call onRootCompleted callback for Job " + jobRecord.getRootId(), e);
         }
       } else {
-        for (PortCounter portCounter : jobRecord.getOutputCounters()) {
-          Object output = event.getResult().get(portCounter.getPort());
-          eventProcessor.addToQueue(new OutputUpdateEvent(jobRecord.getRootId(), jobRecord.getId(), portCounter.getPort(), output, 1, event.getEventGroupId(), event.getProducedByNode()));
+          if (!jobRecord.isScatterWrapper()) {
+            for (PortCounter portCounter : jobRecord.getOutputCounters()) {
+              Object output = event.getResult().get(portCounter.getPort());
+              eventProcessor.addToQueue(new OutputUpdateEvent(jobRecord.getRootId(), jobRecord.getId(), portCounter.getPort(), output, 1, event.getEventGroupId(), event.getProducedByNode()));
+            }
+          }
         }
-      }
       break;
     case ABORTED:
       Set<JobRecord.JobState> jobRecordStatuses = new HashSet<>();
