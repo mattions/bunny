@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.commons.configuration.Configuration;
 import org.rabix.bindings.BindingException;
@@ -182,9 +183,18 @@ public class JobStatusEventHandler implements EventHandler<JobStatusEvent> {
           throw new EventHandlerException("Failed to call onRootCompleted callback for Job " + jobRecord.getRootId(), e);
         }
       } else {
+    	  if(!jobRecord.isScatterWrapper()){
         for (PortCounter portCounter : jobRecord.getOutputCounters()) {
           Object output = event.getResult().get(portCounter.getPort());
-          eventProcessor.addToQueue(new OutputUpdateEvent(jobRecord.getRootId(), jobRecord.getId(), portCounter.getPort(), output, jobRecord.getNumberOfGlobalOutputs(), 1, event.getEventGroupId(), event.getProducedByNode()));
+          eventProcessor.send(new OutputUpdateEvent(jobRecord.getRootId(), jobRecord.getId(), portCounter.getPort(), output, jobRecord.getNumberOfGlobalOutputs(), 1, event.getEventGroupId(), event.getProducedByNode()));
+        }
+        }
+    	if(!jobRecord.isScattered()){
+            List<LinkRecord> rootLinks = linkRecordService.findBySourceAndSourceType(jobRecord.getId(), LinkPortType.OUTPUT, jobRecord.getRootId()).stream().filter(p->p.getDestinationJobId().equals(InternalSchemaHelper.ROOT_NAME)).collect(Collectors.toList());
+            Map<String, Object> outs = rootLinks.stream().collect(Collectors.toMap(l->l.getDestinationJobPort(), l->variableRecordService.find(InternalSchemaHelper.ROOT_NAME, l.getDestinationJobPort(), LinkPortType.OUTPUT, jobRecord.getRootId()).getValue()));
+            if(!outs.isEmpty()){
+              jobService.handleJobRootPartiallyCompleted(jobRecord.getRootId(), outs, jobRecord.getId());
+            }
         }
       }
       break;

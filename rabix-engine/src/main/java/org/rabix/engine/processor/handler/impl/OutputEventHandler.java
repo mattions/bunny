@@ -108,6 +108,8 @@ public class OutputEventHandler implements EventHandler<OutputUpdateEvent> {
             Job completedJob = JobHelper.createCompletedJob(sourceJob, JobStatus.COMPLETED, jobRecordService, variableService, linkService, contextService,
                 dagNodeDB, appDB);
             jobService.handleJobCompleted(completedJob);
+            if(sourceJob.isScatterWrapper())
+            eventProcessor.addToQueue(new JobStatusEvent(sourceJob.getId(), event.getContextId(), JobState.COMPLETED, completedJob.getOutputs(), event.getEventGroupId(), sourceJob.getId()));
           } catch (BindingException e) {
           }
         }
@@ -158,8 +160,6 @@ public class OutputEventHandler implements EventHandler<OutputUpdateEvent> {
           boolean destinationRoot = link.getDestinationJobId().equals(InternalSchemaHelper.ROOT_NAME);
 		  if(sourceJob.isScattered() && destinationRoot) 
         	break;
-		  if(destinationRoot && sourceJob.isOutputPortReady(event.getPortId()))
-				terminals.add(link.getDestinationJobPort());
           if (sourceJob.isOutputPortReady(event.getPortId()) || sourceJob.isScattered()) {
             newEvent = new OutputUpdateEvent(event.getContextId(), link.getDestinationJobId(), link.getDestinationJobPort(), value, numberOfScattered, link.getPosition(), event.getEventGroupId(), event.getProducedByNode());
           }
@@ -167,11 +167,6 @@ public class OutputEventHandler implements EventHandler<OutputUpdateEvent> {
       }
       if (newEvent != null)
         eventProcessor.send(newEvent);
-    }
-    Map<String, Object> outs = terminals.stream().collect(Collectors.toMap(Function.identity(), out->  variableService.find(InternalSchemaHelper.ROOT_NAME, out, LinkPortType.OUTPUT, sourceJob.getRootId()).getValue()));
-    if(!outs.isEmpty()){
-        jobService.handleJobRootPartiallyCompleted(event.getContextId(), outs, event.getProducedByNode());
-        
     }
   }
 
