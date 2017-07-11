@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.rabix</groupId>
 	<artifactId>rabix</artifactId>
-	<version>1.0.0-rc5</version>
+	<version>1.0.0-rc8</version>
 	<packaging>pom</packaging>
 	<name>Rabix</name>
 	<modules>
@@ -14,14 +14,11 @@
 		<module>rabix-ftp</module>
 		<module>rabix-engine-rest</module>
 		<module>rabix-common</module>
-		<module>rabix-backend-local</module>
 		<module>rabix-transport</module>
-		<module>rabix-integration-testing</module>
 		<module>rabix-bindings-cwl</module>
 		<module>rabix-bindings-draft2</module>
 		<module>rabix-bindings-draft3</module>
 		<module>rabix-bindings-sb</module>
-		<module>rabix-tes-command-line</module>
   </modules>
 
 	<properties>
